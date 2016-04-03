@@ -1,0 +1,13 @@
+## Getting and Cleaing Data Course Project:
+
+This repo contains the R code and documentation files of Courser's "Getting and Cleaning Data" Course project.
+
+## Files:
+
+The code in the run_analysis.R files assummes that all of the data is downloaded and uncompressed in the working directory with original file names. 
+
+run_analysis.R contains the code to perform cleaning data 5 steps.
+
+CodeBook.Rmd contains information about all the variables or transformation used in the R script (run_analysis.R) for tidying data.
+
+tidy_data.txt contains the tidy data obtained after running the R script (run_analysis.R).
