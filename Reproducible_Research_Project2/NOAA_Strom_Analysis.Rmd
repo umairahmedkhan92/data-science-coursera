@@ -1,0 +1,113 @@
+---
+title: "Health and Economic Effects of Severe Weather Events across USA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE, fig.width=12, warning=FALSE)
+```
+
+### Synopsis
+In this report I have examined the effects of severe weather events in United States on the population health and country's economy. To investigate this hypothesis, I have obtained the weather data through U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database which is recorded for the years from 1950 to 2011. I have meausred harmful effects of these events through injuires and fatalties and found that **Tornado** and **Excessive Heat** are most harmful with respect to population health. I have also examined the economic effects of these events through the damages caused to property and crops and found that **Floods** and **Hurricane/Typhoons** are the main causes.
+
+### Data Processing
+I have used R function of *bzfile()* and *read.csv()* to load this weather data into R.
+
+```{r}
+if(file.exists('repdata-data-StormData.csv.bz2')){
+  data <- read.csv(bzfile("repdata-data-StormData.csv.bz2"), header = TRUE)
+}
+```
+
+To see the dimensions of data and structure of data loaded
+
+```{r}
+library("ggplot2")
+library("dplyr")
+
+dim(data)
+str(data)
+```
+
+From here we can see that we only need the folloing variables for our analysis:
+
+* EVTYPE
+* FATALITIES
+* INJURIES
+* PROPDMG
+* PROPDMGEXP
+* CROPDMG
+* CROPDMGEXP
+
+So I selected these variables from *data* and strored the resulting data in a new variable called *selected_data*.
+
+```{r}
+selected_data <- select(data, EVTYPE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
+```
+
+## Results
+
+### Across the United States, which types of events are most harmful with respect to population health?
+
+For the analysis of harmful effects on public health, I have aggredated number of injuries and fatalties with respect to weather events and then calculated the top 10 events with most number of harmful effects. This can also be seen in the plot shown below.
+
+```{r}
+harm_pop_health <- aggregate(FATALITIES + INJURIES  ~ EVTYPE, selected_data, sum, na.rm = T)
+names(harm_pop_health) <- c("EVENTS", "HARM")
+harm_pop_health <- arrange(harm_pop_health, desc(HARM))
+harm_pop_health <- harm_pop_health[1:10, ]
+
+harm_pop_health
+
+g <- ggplot(harm_pop_health, aes(EVENTS, HARM)) + geom_bar(stat="identity")
+g + labs(title = "Top 10 severe weather events across USA that are most harmful with respect to population health.", 
+         x = "Weather Events", y="Sum of Injuries and Fatalties" ) 
+```
+
+### Across the United States, which types of events have the greatest economic consequences?
+
+For the analysis of economical effects due to weather events, I have first transformed the *PROPDMGEXP* and *CROPDMGEXP* and created 2 new variables *PROP_DATA* and *CROP_DATA*
+
+```{r}
+transform_data <- function(dataset = selected_data){
+  dataset$PROPDMGEXP <- as.character(dataset$PROPDMGEXP)
+  dataset$PROPDMGEXP <- as.character(dataset$PROPDMGEXP)
+  dataset$PROPDMGEXP = gsub("\\-|\\+|\\?","0",dataset$PROPDMGEXP)
+  dataset$PROPDMGEXP = gsub("B|b", "9", dataset$PROPDMGEXP)
+  dataset$PROPDMGEXP = gsub("M|m", "6", dataset$PROPDMGEXP)
+  dataset$PROPDMGEXP = gsub("K|k", "3", dataset$PROPDMGEXP)
+  dataset$PROPDMGEXP = gsub("H|h", "2", dataset$PROPDMGEXP)
+  dataset$PROPDMGEXP <- as.numeric(dataset$PROPDMGEXP)
+  dataset$PROPDMGEXP[is.na(dataset$PROPDMGEXP)] = 0
+  dataset$PROP_DATA<- dataset$PROPDMG * 10^dataset$PROPDMGEXP
+  
+  dataset$CROPDMGEXP <- as.character(dataset$CROPDMGEXP)
+  dataset$CROPDMGEXP = gsub("\\-|\\+|\\?","0",dataset$CROPDMGEXP)
+  dataset$CROPDMGEXP = gsub("B|b", "9", dataset$CROPDMGEXP)
+  dataset$CROPDMGEXP = gsub("M|m", "6", dataset$CROPDMGEXP)
+  dataset$CROPDMGEXP = gsub("K|k", "3", dataset$CROPDMGEXP)
+  dataset$CROPDMGEXP = gsub("H|h", "2", dataset$CROPDMGEXP)
+  dataset$CROPDMGEXP <- as.numeric(dataset$CROPDMGEXP)
+  dataset$CROPDMGEXP[is.na(dataset$CROPDMGEXP)] = 0
+  dataset$CROP_DATA<- dataset$CROPDMG * 10^dataset$CROPDMGEXP
+  
+  return(dataset)
+}
+
+selected_data <- transform_data(selected_data)
+```
+
+I then aggreated the data obtained from these newly created property and crop vaiables with respect to the events and then calculated the top 10 events with most number of economic effects caused due to these severe weather events.
+
+```{r}
+enonomic_harm <- aggregate(PROP_DATA + CROP_DATA ~ EVTYPE, selected_data, sum, na.rm = T)
+names(enonomic_harm) <- c("EVENTS", "HARM")
+enonomic_harm <- arrange(enonomic_harm, desc(HARM))
+enonomic_harm <- enonomic_harm[1:10, ]
+
+enonomic_harm
+
+g <- ggplot(enonomic_harm, aes(EVENTS, HARM)) + geom_bar(stat="identity")
+g + labs(title = "Top 10 severe weather events across USA that have the greatest economic consequences.", 
+         x = "Weather Events", y="Sum of Damages to Property and Crops") 
+```
